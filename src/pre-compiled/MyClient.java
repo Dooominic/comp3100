@@ -9,6 +9,7 @@ public class MyClient {
 
 	// returns an array of integers which represents data given to us by server
 	public static int[] intParser(String str, int idx) {
+		System.out.println("in intParser, response is " + str);
 		String[] splt = str.split(" ");
 		int[] result = new int[splt.length - idx];
 		for (int x = 0; x < result.length; x++) {
@@ -50,6 +51,34 @@ public class MyClient {
 
 		return indexOfLargest;
 	}
+	// Called after every REDY response. Recursive as it is a neat way to handle concurrent JCPL responses.
+	public static String JCPLHandler(String response, BufferedReader in, DataOutputStream out) {
+		String[] splt = response.split(" ");
+		if (splt[0].equals("JCPL")) {
+			try {
+				out.write(("REDY\n").getBytes());
+				String res = in.readLine();
+				System.out.println(res);
+				response = JCPLHandler(res, in, out);
+				return response;
+			} catch (UnknownHostException e) {
+				// prints error message if host cannot be resolved
+				System.out.println("Sock:" + e.getMessage());
+			} catch (EOFException e) {
+				System.out.println("EOF:" + e.getMessage());
+			} catch (IOException e) {
+				System.out.println("IO:" + e.getMessage());
+			}
+			if (s != null)
+				try {
+					s.close();
+				} catch (IOException e) {
+					System.out.println("close:" + e.getMessage());
+				}
+		}
+
+		return response;
+	}
 
 	public static void main(String args[]) {
 		try {
@@ -67,10 +96,16 @@ public class MyClient {
 			response = in.readLine();
 			System.out.println("Received: " + response);
 
-			while (true) {
+			//Schedule loop. Breaks when there are no more jobs left to schedule.
+			while (!response.equals("NONE")) {
 				out.write(("REDY\n").getBytes());
 				response = in.readLine();
 				System.out.println("Received: " + response);
+				response = JCPLHandler(response, in, out);
+
+				if(response.equals("NONE")){
+					break;
+				}
 
 				int[] JOBNInfo = intParser(response, 1);
 				System.out.println(Arrays.toString(JOBNInfo));
@@ -78,6 +113,7 @@ public class MyClient {
 				out.write(("GETS All\n".getBytes()));
 				response = in.readLine();
 				System.out.println("Received: " + response);
+				
 
 				int[] parsedDATA = intParser(response, 1);
 
@@ -114,12 +150,10 @@ public class MyClient {
 				response = in.readLine();
 				System.out.println("Received: " + response);
 
-				System.out.println("Loop ended");
-				if (response.equals("NONE")) {
-					System.out.println("NONE!!!!");
-					break;
-				}
+				response = in.readLine();
+				System.out.println("Received: " + response);
 
+				System.out.println("Loop ended");
 			}
 
 			System.out.println("before quit");
