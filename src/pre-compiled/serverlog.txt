@@ -1,0 +1,43 @@
+# ds-sim server 28-Feb, 2023 @ MQ - client-server
+# Server-side simulator started with './ds-server -c ds-sample-config01.xml -n'
+# Waiting for connection to port 50000 of IP address 127.0.0.1
+# Welcome dom!
+# The system information can be read from 'ds-system.xml'
+t:         37 job     0 (waiting) on # 0 of server super-silk (booting) SCHEDULED
+t:         60 job     1 (waiting) on # 0 of server super-silk (booting) SCHEDULED
+t:         96 job     2 (waiting) on # 0 of server super-silk (booting) SCHEDULED
+t:        101 job     3 (waiting) on # 0 of server super-silk (booting) SCHEDULED
+t:        117 job     0 on # 0 of server super-silk RUNNING
+t:        117 job     1 on # 0 of server super-silk RUNNING
+t:        117 job     2 on # 0 of server super-silk RUNNING
+t:        117 job     3 on # 0 of server super-silk RUNNING
+t:        137 job     4 (running) on # 0 of server super-silk (active) SCHEDULED
+t:        137 job     4 on # 0 of server super-silk RUNNING
+t:        156 job     5 (running) on # 0 of server super-silk (active) SCHEDULED
+t:        156 job     5 on # 0 of server super-silk RUNNING
+t:        177 job     5 on # 0 of server super-silk COMPLETED
+t:        198 job     6 (running) on # 0 of server super-silk (active) SCHEDULED
+t:        198 job     6 on # 0 of server super-silk RUNNING
+t:        225 job     7 (running) on # 0 of server super-silk (active) SCHEDULED
+t:        225 job     7 on # 0 of server super-silk RUNNING
+t:        249 job     8 (waiting) on # 0 of server super-silk (active) SCHEDULED
+t:        303 job     4 on # 0 of server super-silk COMPLETED
+t:        303 job     8 on # 0 of server super-silk RUNNING
+t:        308 job     9 (waiting) on # 0 of server super-silk (active) SCHEDULED
+t:        575 job     7 on # 0 of server super-silk COMPLETED
+t:        575 job     9 on # 0 of server super-silk RUNNING
+t:        603 job     2 on # 0 of server super-silk COMPLETED
+t:        758 job     6 on # 0 of server super-silk COMPLETED
+t:       1127 job     8 on # 0 of server super-silk COMPLETED
+t:       1188 job     3 on # 0 of server super-silk COMPLETED
+t:       1212 job     1 on # 0 of server super-silk COMPLETED
+t:       1357 job     0 on # 0 of server super-silk COMPLETED
+t:       2045 job     9 on # 0 of server super-silk COMPLETED
+# -------------------------------------------------------------------------------------
+# 0 juju servers used with a utilisation of 0.00 at the cost of $0.00
+# 0 joon servers used with a utilisation of 0.00 at the cost of $0.00
+# 1 super-silk servers used with a utilisation of 100.00 at the cost of $0.43
+# ==================================== [ Summary ] ====================================
+# actual simulation end time: 2045, #jobs: 10 (failed 0 times)
+# total #servers used: 1, avg util: 100.00% (ef. usage: 100.00%), total cost: $0.43
+# avg waiting time: 49, avg exec time: 728, avg turnaround time: 777
