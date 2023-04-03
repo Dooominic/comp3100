@@ -3,8 +3,8 @@
 # Waiting for connection to port 50000 of IP address 127.0.0.1
 RCVD HELO
 SENT OK
-RCVD AUTH dom
-# Welcome  dom!
+RCVD AUTHdom
+# Welcome dom!
 # The system information can be read from 'ds-system.xml'
 SENT OK
 RCVD REDY
@@ -93,11 +93,11 @@ t:       1756 job     3 on # 0 of server t2.aws COMPLETED
 SENT JCPL 1756 3 t2.aws 0
 RCVD REDY
 SENT JOBN 1784 12 1615 1 500 1700
-RCVD SCHD 12 t2.aws 0
-t:       1784 job    12 (running) on # 0 of server t2.aws (active) SCHEDULED
-t:       1784 job    12 on # 0 of server t2.aws RUNNING
+RCVD SCHD 12 t1.medium 0
+t:       1784 job    12 (waiting) on # 0 of server t1.medium (booting) SCHEDULED
 SENT OK
 RCVD REDY
+t:       1824 job    12 on # 0 of server t1.medium RUNNING
 t:       1997 job    11 on # 0 of server t2.aws COMPLETED
 SENT JCPL 1997 11 t2.aws 0
 RCVD REDY
@@ -118,8 +118,8 @@ RCVD REDY
 t:       2487 job    10 on # 0 of server t2.aws COMPLETED
 SENT JCPL 2487 10 t2.aws 0
 RCVD REDY
-t:       2704 job    12 on # 0 of server t2.aws COMPLETED
-SENT JCPL 2704 12 t2.aws 0
+t:       2744 job    12 on # 0 of server t1.medium COMPLETED
+SENT JCPL 2744 12 t1.medium 0
 RCVD REDY
 SENT JOBN 3408 15 22911 1 500 1300
 RCVD SCHD 15 t2.aws 0
@@ -194,9 +194,9 @@ SENT QUIT
 # -------------------------------------------------------------------------------------
 # 0 t1.micro servers used with a utilisation of 0.00 at the cost of $0.00
 # 0 t1.small servers used with a utilisation of 0.00 at the cost of $0.00
-# 0 t1.medium servers used with a utilisation of 0.00 at the cost of $0.00
+# 1 t1.medium servers used with a utilisation of 100.00 at the cost of $0.10
 # 1 t2.aws servers used with a utilisation of 100.00 at the cost of $25.70
 # ==================================== [ Summary ] ====================================
 # actual simulation end time: 115732, #jobs: 20 (failed 0 times)
-# total #servers used: 1, avg util: 100.00% (ef. usage: 100.00%), total cost: $25.70
-# avg waiting time: 11654, avg exec time: 25479, avg turnaround time: 37133
+# total #servers used: 2, avg util: 100.00% (ef. usage: 100.00%), total cost: $25.80
+# avg waiting time: 11656, avg exec time: 25479, avg turnaround time: 37135

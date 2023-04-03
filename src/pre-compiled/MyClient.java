@@ -9,7 +9,6 @@ public class MyClient {
 
 	// returns an array of integers which represents data given to us by server
 	public static int[] intParser(String str, int idx) {
-		System.out.println("in intParser, response is " + str);
 		String[] splt = str.split(" ");
 		int[] result = new int[splt.length - idx];
 		for (int x = 0; x < result.length; x++) {
@@ -51,15 +50,16 @@ public class MyClient {
 
 		return indexOfLargest;
 	}
-	// Called after every REDY response. Recursive as it is a neat way to handle concurrent JCPL responses.
-	public static String JCPLHandler(String response, BufferedReader in, DataOutputStream out) {
+
+	// Called after every REDY response. Recursive as it is a neat way to handle
+	// concurrent JCPL responses.
+	public static String responseHandler(String response, BufferedReader in, DataOutputStream out) {
 		String[] splt = response.split(" ");
 		if (splt[0].equals("JCPL")) {
 			try {
 				out.write(("REDY\n").getBytes());
 				String res = in.readLine();
-				System.out.println(res);
-				response = JCPLHandler(res, in, out);
+				response = responseHandler(res, in, out);
 				return response;
 			} catch (UnknownHostException e) {
 				// prints error message if host cannot be resolved
@@ -87,88 +87,107 @@ public class MyClient {
 			in = new BufferedReader(new InputStreamReader(s.getInputStream()));
 			out = new DataOutputStream(s.getOutputStream());
 
+			// begins handshake
 			out.write(("HELO\n").getBytes());
+			System.out.println("C SENT HELO\n");
 			String response = in.readLine();
-			System.out.println("Received: " + response);
+			System.out.println("C RCVD " + response);
 
+			// authorises using system username
 			String username = System.getProperty("user.name");
 			out.write(("AUTH" + username + "\n").getBytes());
+			System.out.println("C SENT AUTH " + username + "\n");
 			response = in.readLine();
-			System.out.println("Received: " + response);
+			System.out.println("C RSVD: " + response);
 
-			//Schedule loop. Breaks when there are no more jobs left to schedule.
-			while (!response.equals("NONE")) {
+			// Schedule loop. Breaks when there are no more jobs left to schedule.
+			while (true) {
 				out.write(("REDY\n").getBytes());
+				System.out.println("C SENT REDY");
 				response = in.readLine();
-				System.out.println("Received: " + response);
-				response = JCPLHandler(response, in, out);
+				System.out.println("C RCVD " + response);
+				// After each REDY response I call responseHandler to check if response is JCPL
+				// so it can be handled accordingly.
 
-				if(response.equals("NONE")){
+				response = responseHandler(response, in, out);
+
+				// checks if there are any more jobs to schedule
+				if (response.equals("NONE")) {
 					break;
 				}
 
+				// if we reach this point we are guaranteed to have a JOBN as response.
+				// we put it through the intParser to retrieve relevant numerical values form JOBN for later use
 				int[] JOBNInfo = intParser(response, 1);
-				System.out.println(Arrays.toString(JOBNInfo));
 
+				// begins to retrieve information on server
 				out.write(("GETS All\n".getBytes()));
+				System.out.println("C SENT GETS All");
 				response = in.readLine();
-				System.out.println("Received: " + response);
-				
+				System.out.println("C RCVD " + response);
 
+				// parses numerical data from DATA response for later use.
 				int[] parsedDATA = intParser(response, 1);
 
+				// request server list
 				out.write(("OK\n").getBytes());
 
-				String[] serverList = new String[parsedDATA[0]];
 
+				// adds server information to an array of strings.
+				String[] serverList = new String[parsedDATA[0]];
 				for (int i = 0; i < parsedDATA[0]; i++) {
 					response = in.readLine();
 					System.out.println("Received: " + response);
 					serverList[i] = response;
 				}
+
 				out.write(("OK\n").getBytes());
+				System.out.println("C SENT OK");
 				response = in.readLine();
-				System.out.println("Received: " + response);
+				System.out.println("C RCVD " + response);
 
+				//converts string server list to object server list of correct data types
 				Object[][] serverInfo = new Object[serverList.length][];
-
 				for (int i = 0; i < serverList.length; i++) {
 					Object[] resourceArray = serverParser(serverList[i]);
 					serverInfo[i] = resourceArray;
-					System.out.println(Arrays.toString(serverInfo[i]));
 				}
+				// finds the index of largest server
 				int largestServerIndex = serverFinder(serverInfo);
 
-				System.out.println(largestServerIndex);
-
 				out.write(("OK\n").getBytes());
+				System.out.println("C SENT OK");
 				response = in.readLine();
-				System.out.println("Received: " + response);
+				System.out.println("C RCVD " + response);
 
 				out.write(("SCHD " + JOBNInfo[1] + " " + serverInfo[largestServerIndex][0] + " "
 						+ serverInfo[largestServerIndex][1] + "\n").getBytes());
+				System.out.println("C SENT" + JOBNInfo[1] + " " + serverInfo[largestServerIndex][0] + " "
+				+ serverInfo[largestServerIndex][1]);
 				response = in.readLine();
-				System.out.println("Received: " + response);
+				System.out.println("C RCVD " + response);
 
 				response = in.readLine();
-				System.out.println("Received: " + response);
-
-				System.out.println("Loop ended");
+				System.out.println("C RCVD " + response);
 			}
 
-			System.out.println("before quit");
 			out.write(("QUIT\n").getBytes());
+			System.out.println("C SENT QUIT");
 			response = in.readLine();
-			System.out.println("Received: " + response);
+			System.out.println("C RECIEVED " + response);
 
+			// Catching exceptions for network errors:
 		} catch (UnknownHostException e) {
 			// prints error message if host cannot be resolved
 			System.out.println("Sock:" + e.getMessage());
 		} catch (EOFException e) {
+			// prints error message if end of steam is unexpectedly reached.
 			System.out.println("EOF:" + e.getMessage());
 		} catch (IOException e) {
+			// prints error message if IO error occurs.
 			System.out.println("IO:" + e.getMessage());
 		}
+		// throws excption if unable to close socket
 		if (s != null)
 			try {
 				s.close();
