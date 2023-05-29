@@ -1,4 +1,5 @@
 import java.net.*;
+import java.util.Arrays;
 import java.io.*;
 
 public class MyClient {
@@ -6,6 +7,61 @@ public class MyClient {
 	static DataOutputStream out;
 	static Socket s;
 	static Object[] largestServerType = null;
+	static String response;
+
+	// sends a message and returns the current state of the input stream
+	public static BufferedReader send(String message, BufferedReader in, DataOutputStream out) {
+		try {
+			out.write((message + "\n").getBytes());
+			System.out.println("C SENT " + message);
+			return in;
+
+		} catch (UnknownHostException e) {
+			// prints error message if host cannot be resolved
+			System.out.println("Sock:" + e.getMessage());
+		} catch (EOFException e) {
+			System.out.println("EOF:" + e.getMessage());
+		} catch (IOException e) {
+			System.out.println("IO:" + e.getMessage());
+		}
+		if (s != null)
+			try {
+				s.close();
+			} catch (IOException e) {
+				System.out.println("close:" + e.getMessage());
+			}
+		return null;
+	}
+
+	// reads whats in the input stream (recieves message)
+	public static String rcv(BufferedReader in) {
+		try {
+			String response = in.readLine();
+			System.out.println("C RCVD " + response);
+			return response;
+		} catch (UnknownHostException e) {
+			// prints error message if host cannot be resolved
+			System.out.println("Sock:" + e.getMessage());
+		} catch (EOFException e) {
+			System.out.println("EOF:" + e.getMessage());
+		} catch (IOException e) {
+			System.out.println("IO:" + e.getMessage());
+		}
+		if (s != null)
+			try {
+				s.close();
+			} catch (IOException e) {
+				System.out.println("close:" + e.getMessage());
+			}
+		return null;
+	}
+
+	// a function to send requests. (send a message and read the response)
+	public static String request(String message, BufferedReader in, DataOutputStream out) {
+		in = send(message, in, out);
+		response = rcv(in);
+		return response;
+	}
 
 	// returns an array of integers which represents data given to us by server
 	public static int[] intParser(String str, int idx) {
@@ -15,14 +71,12 @@ public class MyClient {
 			result[x] = Integer.parseInt(splt[idx]);
 			idx++;
 		}
-
 		return result;
 	}
 
 	// returns an array of objects representing server information based on strings
 	// supplied by server.
 	public static Object[] serverParser(String str) {
-
 		String[] splt = str.split(" ");
 		Object[] result = new Object[splt.length];
 		Object temp;
@@ -56,31 +110,49 @@ public class MyClient {
 	public static String responseHandler(String response, BufferedReader in, DataOutputStream out) {
 		String[] splt = response.split(" ");
 		if (splt[0].equals("JCPL")) {
-			try {
-				out.write(("REDY\n").getBytes());
-				String res = in.readLine();
-				response = responseHandler(res, in, out);
-				return response;
-			} catch (UnknownHostException e) {
-				// prints error message if host cannot be resolved
-				System.out.println("Sock:" + e.getMessage());
-			} catch (EOFException e) {
-				System.out.println("EOF:" + e.getMessage());
-			} catch (IOException e) {
-				System.out.println("IO:" + e.getMessage());
-			}
-			if (s != null)
-				try {
-					s.close();
-				} catch (IOException e) {
-					System.out.println("close:" + e.getMessage());
-				}
+			String res = request("REDY", in, out);
+			response = responseHandler(res, in, out);
 		}
-
 		return response;
 	}
 
+	// builds server list
+	public static Object[][] buildList(int parsedDATA, BufferedReader in, DataOutputStream out) {
+		// get server list
+		in = send("OK", in, out);
+
+		// adds server information to an array of strings.
+		Object[][] serverList = new Object[parsedDATA][];
+		for (int i = 0; i < parsedDATA; i++) {
+			response = rcv(in);
+			serverList[i] = serverParser(response);
+		}
+		return serverList;
+	}
+
+	public static void lrr(Object[][] serverList, int JOBNInfo, BufferedReader in, DataOutputStream out) {
+
+		// finds the index of largest server
+		if (largestServerType == null) {
+			int largestServerIndex = serverFinder(serverList);
+			largestServerType = serverList[largestServerIndex];
+
+		}
+		response = request("OK", in, out);
+
+		response = request(("SCHD " + JOBNInfo + " " + largestServerType[0] + " "
+				+ largestServerType[1]), in, out);
+
+		response = rcv(in);
+
+	}
+
 	public static void main(String args[]) {
+		if (args.length < 1 || !args[0].equals("-lrr")){
+			System.out.println("Usage: java MyClient -lrr");
+			return;
+		}
+		System.out.println(Arrays.toString(args));
 		try {
 			int serverPort = 50000;
 			s = new Socket("localhost", serverPort);
@@ -88,93 +160,48 @@ public class MyClient {
 			out = new DataOutputStream(s.getOutputStream());
 
 			// begins handshake
-			out.write(("HELO\n").getBytes());
-			System.out.println("C SENT HELO");
-			String response = in.readLine();
-			System.out.println("C RCVD " + response);
+			response = request("HELO", in, out);
 
 			// authorises using system username
 			String username = System.getProperty("user.name");
-			out.write(("AUTH " + username + "\n").getBytes());
-			System.out.println("C SENT AUTH " + username);
-			response = in.readLine();
-			System.out.println("C RCVD " + response);
+			response = request("AUTH " + username, in, out);
 
 			// Schedule loop. Breaks when there are no more jobs left to schedule.
 			while (true) {
-				out.write(("REDY\n").getBytes());
-				System.out.println("C SENT REDY");
-				response = in.readLine();
-				System.out.println("C RCVD " + response);
+				response = request("REDY", in, out);
+
 				// After each REDY response I call responseHandler to check if response is JCPL
 				// so it can be handled accordingly.
-
 				response = responseHandler(response, in, out);
 
 				// checks if there are any more jobs to schedule
 				if (response.equals("NONE")) {
 					break;
 				}
-
 				// if we reach this point we are guaranteed to have a JOBN as response.
-				// we put it through the intParser to retrieve relevant numerical values form JOBN for later use
+				// we put it through the intParser to retrieve relevant numerical values form
+				// JOBN for later use
 				int[] JOBNInfo = intParser(response, 1);
 
+				System.out.println(Arrays.toString(JOBNInfo));
 				// begins to retrieve information on server
-				out.write((("GETS Capable " + JOBNInfo[3] + " " + JOBNInfo[4] + " " + JOBNInfo[5] + "\n").getBytes()));
-				System.out.println("C SENT GETS Capable " + JOBNInfo[3] + " " + JOBNInfo[4] + " " + JOBNInfo[5]);
-				response = in.readLine();
-				System.out.println("C RCVD " + response);
+				response = request("GETS Capable " + JOBNInfo[3] + " " + JOBNInfo[4] + " " + JOBNInfo[5], in, out);
 
 				// parses numerical data from DATA response for later use.
 				int[] parsedDATA = intParser(response, 1);
 
-				// request server list
-				out.write(("OK\n").getBytes());
+				// adds server information to an array of objects.
+				Object[][] serverList = buildList(parsedDATA[0], in, out);
+				
+				response = request("OK", in, out);
 
-				// adds server information to an array of strings.
-				Object[][] serverList = new Object[parsedDATA[0]][];
-				for (int i = 0; i < parsedDATA[0]; i++) {
-					response = in.readLine();
-					System.out.println("C RCVD " + response);
-					serverList[i] = serverParser(response);
+				// checks if algorithm is using lrr and if so schedules according to lrr algorithm
+				if(args[0].equals("-lrr")){
+					lrr(serverList, JOBNInfo[1], in, out);
 				}
-
-				out.write(("OK\n").getBytes());
-				System.out.println("C SENT OK");
-				response = in.readLine();
-				System.out.println("C RCVD " + response);
-
-				// finds the index of largest server
-
-				if( largestServerType == null){ 
-					int largestServerIndex = serverFinder(serverList);
-					largestServerType = serverList[largestServerIndex];
-
-				}
-
-
-
-				out.write(("OK\n").getBytes());
-				System.out.println("C SENT OK");
-				response = in.readLine();
-				System.out.println("C RCVD " + response);
-
-				out.write(("SCHD " + JOBNInfo[1] + " " + largestServerType[0] + " "
-						+ largestServerType[1] + "\n").getBytes());
-				System.out.println("C SENT" + JOBNInfo[1] + " " + largestServerType[0] + " "
-				+ largestServerType[1]);
-				response = in.readLine();
-				System.out.println("C RCVD " + response);
-
-				response = in.readLine();
-				System.out.println("C RCVD " + response);
 			}
 
-			out.write(("QUIT\n").getBytes());
-			System.out.println("C SENT QUIT");
-			response = in.readLine();
-			System.out.println("C RCVD " + response);
+			response = request(("QUIT"), in, out);
 
 			// Catching exceptions for network errors:
 		} catch (UnknownHostException e) {
