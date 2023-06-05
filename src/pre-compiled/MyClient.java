@@ -8,7 +8,10 @@ public class MyClient {
 	static Socket s;
 	static Object[] largestServerType = null;
 	static String response;
-
+	static Object[][] serverList;
+	static int serverIndex = 0; 
+	static Object[][]largestList;
+	static int lrrindex=0;
 	// sends a message and returns the current state of the input stream
 	public static BufferedReader send(String message, BufferedReader in, DataOutputStream out) {
 		try {
@@ -95,8 +98,9 @@ public class MyClient {
 	// returns the index of the first largest server
 	public static int serverFinder(Object[][] serverList) {
 		int indexOfLargest = 0;
-
+		System.out.println(	 Arrays.toString(serverList));
 		for (int i = 1; i < serverList.length; i++) {
+			System.out.println("in loop");
 			if ((Integer) serverList[i][4] > (Integer) serverList[i - 1][4]) {
 				indexOfLargest = i;
 			}
@@ -130,30 +134,36 @@ public class MyClient {
 		return serverList;
 	}
 
-	public static void lrr(Object[][] serverList, int JOBNInfo, BufferedReader in, DataOutputStream out) {
-
-		// finds the index of largest server
-		if (largestServerType == null) {
-			int largestServerIndex = serverFinder(serverList);
-			largestServerType = serverList[largestServerIndex];
-
-		}
+	public static void ff(Object[] serverList, int JOBNInfo, BufferedReader in, DataOutputStream out){
+		
 		response = request("OK", in, out);
 
-		response = request(("SCHD " + JOBNInfo + " " + largestServerType[0] + " "
-				+ largestServerType[1]), in, out);
+		response = request(("SCHD " + JOBNInfo + " " + serverList[0] + " "
+				+ serverList[1]), in, out);
+
+		response = rcv(in);
+	}
+
+	public static void lrr(Object[][] serverList, int JOBNInfo, BufferedReader in, DataOutputStream out) {
+
+		// finds the index of largest serer
+		if (lrrindex > serverList.length - 1){
+			lrrindex = 0;
+		}
+
+		
+		response = request("OK", in, out);
+
+		response = request(("SCHD " + JOBNInfo + " " + serverList[lrrindex][0] + " "
+				+ serverList[lrrindex][1]), in, out);
 
 		response = rcv(in);
 
 	}
 
 	public static void main(String args[]) {
-		if (args.length < 1 || !args[0].equals("-lrr")){
-			System.out.println("Usage: java MyClient -lrr");
-			return;
-		}
-		System.out.println(Arrays.toString(args));
 		try {
+			boolean first = true;
 			int serverPort = 50000;
 			s = new Socket("localhost", serverPort);
 			in = new BufferedReader(new InputStreamReader(s.getInputStream()));
@@ -183,22 +193,44 @@ public class MyClient {
 				// JOBN for later use
 				int[] JOBNInfo = intParser(response, 1);
 
-				System.out.println(Arrays.toString(JOBNInfo));
+				
+				if(first){
 				// begins to retrieve information on server
+				first = false;
 				response = request("GETS Capable " + JOBNInfo[3] + " " + JOBNInfo[4] + " " + JOBNInfo[5], in, out);
 
 				// parses numerical data from DATA response for later use.
 				int[] parsedDATA = intParser(response, 1);
 
 				// adds server information to an array of objects.
-				Object[][] serverList = buildList(parsedDATA[0], in, out);
+				serverList = buildList(parsedDATA[0], in, out);
+
+				int largestServerIndex = serverFinder(serverList);
+
+				largestServerType = serverList[largestServerIndex];
+				largestList = Arrays.copyOfRange(serverList,largestServerIndex,serverList.length);
 				
 				response = request("OK", in, out);
-
-				// checks if algorithm is using lrr and if so schedules according to lrr algorithm
-				if(args[0].equals("-lrr")){
-					lrr(serverList, JOBNInfo[1], in, out);
 				}
+				else{
+					Arrays.toString(JOBNInfo);
+					response = request("GETS Avail " + JOBNInfo[3] + " " + JOBNInfo[4] + " " + JOBNInfo[5], in, out);
+
+				// parses numerical data from DATA response for later use.
+				int[] parsedDATA = intParser(response, 1);
+
+				// adds server information to an array of objects.
+				serverList = buildList(parsedDATA[0], in, out);
+				
+				response = request("OK", in, out);
+				}
+
+				if(serverList.length == 0)
+					lrr(largestList, JOBNInfo[1], in, out);
+				else{
+					ff(serverList[0], JOBNInfo[1], in, out);
+				}
+				
 			}
 
 			response = request(("QUIT"), in, out);
